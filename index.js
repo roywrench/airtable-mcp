@@ -113,5 +113,7 @@ app.post("/mcp/tools/get_record", async (req, res) => {
   }
 });
 
-const port = process.env.PORT || 3000;
-app.listen(port, () => console.log(`Airtable MCP listening on :${port}`));
+// Export for Vercel serverless
+module.exports = app;
+
+app.get("/", (_req, res) => res.json({ ok: true, service: "airtable-mcp" }));
