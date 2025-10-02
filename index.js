@@ -122,10 +122,6 @@ app.post("/mcp/tools/get_record", async (req, res) => {
   }
 });
 
-app.get("/health", (_req, res) =>
-  res.json({ ok: true, service: "airtable-mcp" })
-);
-
 // Export for Vercel serverless
 module.exports = app;
 
