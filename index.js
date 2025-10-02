@@ -15,6 +15,7 @@ const cors = require("cors");
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: "1mb" }));
+app.get("/health", (_req, res) => res.json({ ok: true }));
 
 // --- Minimal MCP SSE endpoint required by Custom Connector (BETA)
 app.get("/sse", (req, res) => {
