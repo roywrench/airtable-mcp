@@ -16,6 +16,57 @@ const app = express();
 app.use(cors());
 app.use(express.json({ limit: "1mb" }));
 
+// --- Minimal MCP SSE endpoint required by Custom Connector (BETA)
+app.get("/sse", (req, res) => {
+  res.set({
+    "Content-Type": "text/event-stream",
+    "Cache-Control": "no-cache",
+    Connection: "keep-alive",
+  });
+
+  const manifest = {
+    name: "Airtable MCP",
+    version: "0.1.0",
+    tools: [
+      {
+        name: "list_records",
+        description:
+          "List records from any table in the base. Optional: view, max, fields[], filterByFormula.",
+        input_schema: {
+          type: "object",
+          properties: {
+            table: { type: "string" },
+            view: { type: "string" },
+            max: { type: "number" },
+            fields: { type: "array", items: { type: "string" } },
+            filterByFormula: { type: "string" }
+          },
+          required: ["table"],
+          additionalProperties: false
+        }
+      },
+      {
+        name: "get_record",
+        description: "Get one record by recordId from a table.",
+        input_schema: {
+          type: "object",
+          properties: { table: { type: "string" }, id: { type: "string" } },
+          required: ["table", "id"],
+          additionalProperties: false
+        }
+      }
+    ]
+  };
+
+  // send the manifest once, then keep the stream open
+  res.write(`event: manifest\n`);
+  res.write(`data: ${JSON.stringify(manifest)}\n\n`);
+
+  // keep-alive pings
+  const iv = setInterval(() => res.write(`event: ping\ndata: {}\n\n`), 20000);
+  req.on("close", () => clearInterval(iv));
+});
+
 const AIRTABLE_PAT = process.env.AIRTABLE_PAT;
 const BASE = process.env.AIRTABLE_BASE_ID;
 
