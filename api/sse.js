@@ -1,7 +1,7 @@
 export const config = { runtime: "edge" };
 
 export default function handler(req) {
-  const encoder = new TextEncoder();
+  const enc = new TextEncoder();
   const stream = new ReadableStream({
     start(controller) {
       const manifest = {
@@ -11,7 +11,7 @@ export default function handler(req) {
           {
             name: "list_records",
             description:
-              "List records from any table in the base. Optional: view, max, fields[], filterByFormula.",
+              "List records from any table. Optional: view, max, fields[], filterByFormula.",
             input_schema: {
               type: "object",
               properties: {
@@ -27,7 +27,7 @@ export default function handler(req) {
           },
           {
             name: "get_record",
-            description: "Get one record by recordId from a table.",
+            description: "Get one record by id.",
             input_schema: {
               type: "object",
               properties: { table: { type: "string" }, id: { type: "string" } },
@@ -37,16 +37,12 @@ export default function handler(req) {
           }
         ]
       };
-
-      controller.enqueue(encoder.encode(`event: manifest\n`));
-      controller.enqueue(encoder.encode(`data: ${JSON.stringify(manifest)}\n\n`));
-
+      controller.enqueue(enc.encode(`event: manifest\n`));
+      controller.enqueue(enc.encode(`data: ${JSON.stringify(manifest)}\n\n`));
       const iv = setInterval(() => {
-        controller.enqueue(encoder.encode(`event: ping\n`));
-        controller.enqueue(encoder.encode(`data: {}\n\n`));
+        controller.enqueue(enc.encode(`event: ping\n`));
+        controller.enqueue(enc.encode(`data: {}\n\n`));
       }, 15000);
-
-      // close/cleanup when client disconnects
       req.signal.addEventListener("abort", () => clearInterval(iv));
     }
   });
