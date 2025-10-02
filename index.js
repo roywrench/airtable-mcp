@@ -15,7 +15,9 @@ const cors = require("cors");
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: "1mb" }));
-app.get("/health", (_req, res) => res.json({ ok: true }));
+
+// ---- Health check
+app.get("/health", (_req, res) => res.json({ ok: true, service: "airtable-mcp" }));
 
 // --- Minimal MCP SSE endpoint required by Custom Connector (BETA)
 app.get("/sse", (req, res) => {
@@ -75,49 +77,6 @@ if (!AIRTABLE_PAT || !BASE) {
   console.warn("Missing AIRTABLE_PAT or AIRTABLE_BASE_ID");
 }
 
-// ---- Health check
-app.get("/health", (_req, res) => res.json({ ok: true }));
-
-// ---- MCP manifest: describe available tools
-app.get("/mcp/manifest", (_req, res) => {
-  res.json({
-    name: "Airtable MCP",
-    version: "0.1.0",
-    tools: [
-      {
-        name: "list_records",
-        description:
-          "List records from any table in the base. Optional: view, max, fields[], filterByFormula.",
-        input_schema: {
-          type: "object",
-          properties: {
-            table: { type: "string" },
-            view: { type: "string" },
-            max: { type: "number" },
-            fields: { type: "array", items: { type: "string" } },
-            filterByFormula: { type: "string" }
-          },
-          required: ["table"],
-          additionalProperties: false
-        }
-      },
-      {
-        name: "get_record",
-        description: "Get one record by recordId from a table.",
-        input_schema: {
-          type: "object",
-          properties: {
-            table: { type: "string" },
-            id: { type: "string" }
-          },
-          required: ["table", "id"],
-          additionalProperties: false
-        }
-      }
-    ]
-  });
-});
-
 // ---- Helper: Airtable GET
 async function airtableGet(path, params = {}) {
   const url = `https://api.airtable.com/v0/${BASE}/${encodeURIComponent(path)}`;
@@ -134,9 +93,7 @@ app.post("/mcp/tools/list_records", async (req, res) => {
     const { table, view, max = 50, fields, filterByFormula } = req.body || {};
     if (!table) return res.status(400).json({ ok: false, error: "table is required" });
 
-    const params = {
-      pageSize: Math.min(Number(max) || 50, 100)
-    };
+    const params = { pageSize: Math.min(Number(max) || 50, 100) };
     if (view) params.view = view;
     if (Array.isArray(fields) && fields.length) params.fields = fields;
     if (filterByFormula) params.filterByFormula = filterByFormula;
@@ -168,4 +125,5 @@ app.post("/mcp/tools/get_record", async (req, res) => {
 // Export for Vercel serverless
 module.exports = app;
 
+// Root route
 app.get("/", (_req, res) => res.json({ ok: true, service: "airtable-mcp" }));
