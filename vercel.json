@@ -1,12 +1,5 @@
 {
   "version": 2,
   "builds": [{ "src": "index.js", "use": "@vercel/node" }],
-  "routes": [
-    { "src": "^/health$", "dest": "/index.js" },
-    { "src": "^/sse$", "dest": "/index.js" },
-    { "src": "^/mcp/manifest$", "dest": "/index.js" },
-    { "src": "^/mcp/tools/.*$", "dest": "/index.js" },
-    { "src": "^/$", "dest": "/index.js" },
-    { "src": "^(.*)$", "dest": "/index.js" }
-  ]
+  "routes": [{ "src": "/(.*)", "dest": "/index.js" }]
 }
