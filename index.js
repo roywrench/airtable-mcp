@@ -103,6 +103,15 @@ async function airtableGet(path, params = {}) {
   return r.data;
 }
 
+// --- Helper: list available tables (from env or default)
+const TABLES = (process.env.TABLES_CSV || "Projects,Freelancers,Quotes,Clients,Deliverables,Communications,ProjectTeam")
+  .split(",")
+  .map(s => s.trim());
+
+app.post("/mcp/tools/list_tables", (_req, res) => {
+  res.json({ ok: true, data: TABLES });
+});
+
 // ---- Tool: list_records
 app.post("/mcp/tools/list_records", async (req, res) => {
   try {
