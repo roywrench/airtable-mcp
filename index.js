@@ -1,12 +1,5 @@
-// Minimal Airtable MCP (read-only)
-// Exposes two tools via HTTP for Custom Connector (BETA):
-// - list_records: list rows from any table in your base
-// - get_record: fetch one row by recordId
-//
-// Env vars required (set in Vercel):
-// AIRTABLE_PAT, AIRTABLE_BASE_ID
-//
-// Security: keep PAT read-only; rotate if exposed.
+// Airtable MCP/Actions server (read-only tools + optional SSE)
+// Env vars required in Vercel: AIRTABLE_PAT, AIRTABLE_BASE_ID, ACTIONS_KEY
 
 const express = require("express");
 const axios = require("axios");
@@ -16,15 +9,18 @@ const app = express();
 app.use(cors());
 app.use(express.json({ limit: "1mb" }));
 
-// ---- Health check
+// ---- Health + Root
 app.get("/health", (_req, res) => res.json({ ok: true, service: "airtable-mcp" }));
+app.get("/", (_req, res) => res.json({ ok: true, service: "airtable-mcp" }));
 
-// --- Minimal MCP SSE endpoint required by Custom Connector (BETA)
+// ---- Optional SSE manifest (not needed for Actions; safe to keep)
 app.get("/sse", (req, res) => {
   res.set({
     "Content-Type": "text/event-stream",
-    "Cache-Control": "no-cache",
+    "Cache-Control": "no-cache, no-transform",
     Connection: "keep-alive",
+    "X-Accel-Buffering": "no",
+    "Access-Control-Allow-Origin": "*"
   });
 
   const manifest = {
@@ -34,7 +30,7 @@ app.get("/sse", (req, res) => {
       {
         name: "list_records",
         description:
-          "List records from any table in the base. Optional: view, max, fields[], filterByFormula.",
+          "List records from any table. Optional: view, max, fields[], filterByFormula.",
         input_schema: {
           type: "object",
           properties: {
@@ -50,7 +46,7 @@ app.get("/sse", (req, res) => {
       },
       {
         name: "get_record",
-        description: "Get one record by recordId from a table.",
+        description: "Get one record by id.",
         input_schema: {
           type: "object",
           properties: { table: { type: "string" }, id: { type: "string" } },
@@ -61,21 +57,41 @@ app.get("/sse", (req, res) => {
     ]
   };
 
-  // send the manifest once, then keep the stream open
+  res.write(`retry: 1000\n`);
   res.write(`event: manifest\n`);
   res.write(`data: ${JSON.stringify(manifest)}\n\n`);
+  res.write(`event: ready\n`);
+  res.write(`data: {}\n\n`);
 
-  // keep-alive pings
-  const iv = setInterval(() => res.write(`event: ping\ndata: {}\n\n`), 20000);
+  const iv = setInterval(() => {
+    res.write(`event: ping\n`);
+    res.write(`data: {}\n\n`);
+  }, 2000);
+
   req.on("close", () => clearInterval(iv));
 });
 
+// ---- Airtable config
 const AIRTABLE_PAT = process.env.AIRTABLE_PAT;
 const BASE = process.env.AIRTABLE_BASE_ID;
-
 if (!AIRTABLE_PAT || !BASE) {
   console.warn("Missing AIRTABLE_PAT or AIRTABLE_BASE_ID");
 }
+
+// ---- Simple API key auth for Custom GPT Actions
+const ACTIONS_KEY = process.env.ACTIONS_KEY;
+app.use((req, res, next) => {
+  if (req.path.startsWith("/mcp/tools/")) {
+    const key = req.headers["x-actions-key"];
+    if (!ACTIONS_KEY) {
+      return res.status(500).json({ ok: false, error: "Server missing ACTIONS_KEY" });
+    }
+    if (key !== ACTIONS_KEY) {
+      return res.status(401).json({ ok: false, error: "unauthorized" });
+    }
+  }
+  next();
+});
 
 // ---- Helper: Airtable GET
 async function airtableGet(path, params = {}) {
@@ -122,8 +138,5 @@ app.post("/mcp/tools/get_record", async (req, res) => {
   }
 });
 
-// Export for Vercel serverless
+// ---- Export for Vercel serverless
 module.exports = app;
-
-// Root route
-app.get("/", (_req, res) => res.json({ ok: true, service: "airtable-mcp" }));
