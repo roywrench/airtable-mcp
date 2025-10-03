@@ -9,20 +9,22 @@
         "summary": "List Airtable records",
         "requestBody": {
           "required": true,
-          "content": { "application/json": {
-            "schema": {
-              "type": "object",
-              "properties": {
-                "table": { "type": "string" },
-                "view": { "type": "string" },
-                "max": { "type": "number" },
-                "fields": { "type": "array", "items": { "type": "string" } },
-                "filterByFormula": { "type": "string" }
-              },
-              "required": ["table"],
-              "additionalProperties": false
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "table": { "type": "string" },
+                  "view": { "type": "string" },
+                  "max": { "type": "number" },
+                  "fields": { "type": "array", "items": { "type": "string" } },
+                  "filterByFormula": { "type": "string" }
+                },
+                "required": ["table"],
+                "additionalProperties": false
+              }
             }
-          } } }
+          }
         },
         "responses": { "200": { "description": "OK" } }
       }
@@ -33,23 +35,44 @@
         "summary": "Get one record by id",
         "requestBody": {
           "required": true,
-          "content": { "application/json": {
-            "schema": {
-              "type": "object",
-              "properties": {
-                "table": { "type": "string" },
-                "id": { "type": "string" }
-              },
-              "required": ["table", "id"],
-              "additionalProperties": false
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "table": { "type": "string" },
+                  "id": { "type": "string" }
+                },
+                "required": ["table", "id"],
+                "additionalProperties": false
+              }
             }
-          } } }
+          }
+        },
+        "responses": { "200": { "description": "OK" } }
+      }
+    },
+    "/mcp/tools/list_tables": {
+      "post": {
+        "operationId": "list_tables",
+        "summary": "List allowed table names in the Airtable base",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false
+              }
+            }
+          }
         },
         "responses": { "200": { "description": "OK" } }
       }
     }
   },
   "components": {
+    "schemas": {},
     "securitySchemes": {
       "xActionsKey": { "type": "apiKey", "in": "header", "name": "x-actions-key" }
     }
