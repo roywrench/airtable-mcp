@@ -1,8 +1,24 @@
 export const config = { runtime: "edge" };
 
-export default function handler(req) {
-  const enc = new TextEncoder();
+function sseHeaders() {
+  return {
+    "Content-Type": "text/event-stream",
+    "Cache-Control": "no-cache, no-transform",
+    "Connection": "keep-alive",
+    "X-Accel-Buffering": "no",
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Headers": "*",
+    "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS"
+  };
+}
 
+export default function handler(req) {
+  // Preflight and health for connector handshakes
+  if (req.method === "OPTIONS" || req.method === "HEAD") {
+    return new Response(null, { status: 200, headers: sseHeaders() });
+  }
+
+  const enc = new TextEncoder();
   const manifest = {
     name: "Airtable MCP",
     version: "0.1.0",
@@ -39,38 +55,23 @@ export default function handler(req) {
 
   const stream = new ReadableStream({
     start(controller) {
-      // required SSE prelude
+      // retry hint
       controller.enqueue(enc.encode(`retry: 1000\n`));
-
-      // send manifest first
+      // manifest first
       controller.enqueue(enc.encode(`event: manifest\n`));
       controller.enqueue(enc.encode(`data: ${JSON.stringify(manifest)}\n\n`));
-
-      // signal readiness immediately
+      // explicit readiness
       controller.enqueue(enc.encode(`event: ready\n`));
       controller.enqueue(enc.encode(`data: {}\n\n`));
-
-      // frequent keep-alives so no idle timeout
+      // frequent heartbeats
       const iv = setInterval(() => {
         controller.enqueue(enc.encode(`event: ping\n`));
         controller.enqueue(enc.encode(`data: {}\n\n`));
-      }, 2000);
+      }, 1000);
 
-      req.signal.addEventListener("abort", () => {
-        clearInterval(iv);
-      });
+      req.signal.addEventListener("abort", () => clearInterval(iv));
     }
   });
 
-  return new Response(stream, {
-    headers: {
-      "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache, no-transform",
-      "Connection": "keep-alive",
-      "X-Accel-Buffering": "no",
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Headers": "*",
-      "Access-Control-Allow-Methods": "GET, OPTIONS"
-    }
-  });
+  return new Response(stream, { headers: sseHeaders() });
 }
