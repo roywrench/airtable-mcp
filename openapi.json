@@ -62,6 +62,7 @@
             "application/json": {
               "schema": {
                 "type": "object",
+                "properties": {},
                 "additionalProperties": false
               }
             }
