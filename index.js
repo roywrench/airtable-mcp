@@ -147,5 +147,86 @@ app.post("/mcp/tools/get_record", async (req, res) => {
   }
 });
 
+app.get("/openapi.json", (_req, res) => {
+  res.json({
+    openapi: "3.1.0",
+    info: { title: "ByBento Airtable API", version: "0.1.0" },
+    servers: [{ url: "https://airtable-mcp-nine.vercel.app" }],
+    paths: {
+      "/mcp/tools/list_records": {
+        post: {
+          operationId: "list_records",
+          summary: "List Airtable records",
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    table: { type: "string" },
+                    view: { type: "string" },
+                    max: { type: "number" },
+                    fields: { type: "array", items: { type: "string" } },
+                    filterByFormula: { type: "string" }
+                  },
+                  required: ["table"],
+                  additionalProperties: false
+                }
+              }
+            }
+          },
+          responses: { "200": { description: "OK" } }
+        }
+      },
+      "/mcp/tools/get_record": {
+        post: {
+          operationId: "get_record",
+          summary: "Get one record by id",
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    table: { type: "string" },
+                    id: { type: "string" }
+                  },
+                  required: ["table", "id"],
+                  additionalProperties: false
+                }
+              }
+            }
+          },
+          responses: { "200": { description: "OK" } }
+        }
+      },
+      "/mcp/tools/list_tables": {
+        post: {
+          operationId: "list_tables",
+          summary: "List allowed table names in the Airtable base",
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: { type: "object", properties: {}, additionalProperties: false }
+              }
+            }
+          },
+          responses: { "200": { description: "OK" } }
+        }
+      }
+    },
+    components: {
+      schemas: {},
+      securitySchemes: {
+        xActionsKey: { type: "apiKey", in: "header", name: "x-actions-key" }
+      }
+    },
+    security: [{ xActionsKey: [] }]
+  });
+});
+
 // ---- Export for Vercel serverless
 module.exports = app;
