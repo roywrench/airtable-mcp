@@ -1,5 +1,8 @@
-{
-  "version": 2,
-  "builds": [{ "src": "index.js", "use": "@vercel/node" }],
-  "routes": [{ "src": "/(.*)", "dest": "/index.js" }]
+"/mcp/tools/list_tables": {
+  "post": {
+    "operationId": "list_tables",
+    "summary": "List allowed table names",
+    "requestBody": { "required": true, "content": { "application/json": { "schema": { "type":"object","additionalProperties":false } } } },
+    "responses": { "200": { "description": "OK" } }
+  }
 }
